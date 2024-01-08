@@ -1,7 +1,12 @@
 // Define LED pins
-int redLED = 1;    // Red LED
-int yellowLED = 2; // Yellow LED
-int greenLED = 3;  // Green LED
+int redLED = 16;    // Red LED gpio 16
+int yellowLED = 5; // Yellow LED gpio 5
+int greenLED = 4;  // Green LED
+int msb = 14; // d5 gpio 14
+int secbit = 2; // gpio 2
+int lsb = 0; // gpio 0
+int button = 13; // d7 
+int counter = 0;
 
 void setup() {
   // Set baud rate for serial communication
@@ -11,53 +16,87 @@ void setup() {
   pinMode(redLED, OUTPUT);
   pinMode(yellowLED, OUTPUT);
   pinMode(greenLED, OUTPUT);
+  pinMode(msb, OUTPUT);
+  pinMode(secbit, OUTPUT);
+  pinMode(lsb, OUTPUT);
+  pinMode(button, INPUT_PULLUP);
 }
 
 void loop() {
-  // Traffic light sequence
-  // Green light for 5 seconds with "GO" instruction
+  /* EXERCISE 2 */
+  // f_counter();
+  // stop();
+  // f_counter();
+  // start();
+  // f_counter();
+  // go();
+  // f_counter();
+  // caution();
+
+  /* Exercise 3 */
+  if(digitalRead(button) != true)
+  {
+    digitalWrite(greenLED, HIGH);
+  }
+  digitalWrite(greenLED, LOW);
+
+
+
+}
+
+void stop()
+{
+  digitalWrite(redLED, HIGH);
+  Serial.println("STOP");
+  delay(2000);
+  digitalWrite(redLED, LOW);
+  Serial.println("GO");
+}
+void start()
+{
+  digitalWrite(redLED, HIGH);
+  digitalWrite(yellowLED, HIGH);
+  Serial.println("START");
+  delay(1000);
+  digitalWrite(redLED, LOW);
+  digitalWrite(yellowLED, LOW);
+}
+void go()
+{
+  digitalWrite(redLED, LOW);
+  digitalWrite(yellowLED, LOW);
   digitalWrite(greenLED, HIGH);
   Serial.println("GO");
   delay(5000);
-
-  // Yellow light for 2 seconds with "CAUTION" instruction
   digitalWrite(greenLED, LOW);
-  digitalWrite(yellowLED, HIGH);
-  Serial.println("CAUTION");
-  delay(2000);
-
-  // Red light for 5 seconds with "STOP" instruction
-  digitalWrite(yellowLED, LOW);
-  digitalWrite(redLED, HIGH);
-  Serial.println("STOP");
-  delay(5000);
-
-  // Turn off red light before the next green light
-  digitalWrite(redLED, LOW);
-
-  // Binary counter sequence
-  for (int counter = 0; counter < 8; counter++) {
-    // Set LEDs according to the binary representation of the counter
-    digitalWrite(redLED, counter & 0x01);
-    digitalWrite(yellowLED, counter & 0x02);
-    digitalWrite(greenLED, counter & 0x04);
-
-    // Optional: Change all LEDs to red
-    if (counter == 7) {
-      digitalWrite(redLED, HIGH);
-      digitalWrite(yellowLED, LOW);
-      digitalWrite(greenLED, LOW);
-    }
-
-    // Print the current value of the counter in binary
-    Serial.print("Counter: ");
-    Serial.println(counter, BIN);
-
-    // Wait for a second before the next count
-    delay(1000);
-  }
 }
 
+void caution()
+{
+  digitalWrite(yellowLED, HIGH);
+  Serial.println("CAUTION");
+  delay(1000);
+  digitalWrite(yellowLED, LOW);
 
+}
+
+void f_counter()
+{
+  counter++;
+  digitalWrite(lsb, counter & 0x01);
+  digitalWrite(secbit, counter & 0x02);
+  digitalWrite(msb, counter & 0x04);
+
+  // Optional: Change all LEDs to red
+  if (counter == 7) {
+    digitalWrite(redLED, HIGH);
+    digitalWrite(yellowLED, LOW);
+    digitalWrite(greenLED, LOW);
+  }
+
+  // Print the current value of the counter in binary
+  Serial.print("Counter: ");
+  Serial.println(counter, BIN);
+}
 
 
