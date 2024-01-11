@@ -9,74 +9,74 @@
 #include <SPI.h>
 
 #define SS_PIN 10
+#define BUFFER_LENGTH 12
 
-char buf[100];
+char RxBuf[100];
 uint8_t pos;
-uint8_t process_it;
+uint8_t it_flag;
 
-char message[100] = "Hello Master!";
+char TxBuf[100] = "Hello Master";
 
 void setup (void)
 {
   Serial.begin (115200);   // debugging
 
-  // have to send on master in, *slave out*
-  // pinMode(SS_PIN, INPUT_PULLUP);
-  pinMode(MISO, OUTPUT);
+  initSlaveSPI();
+
+}  // end of setup
+
+
+
+uint16_t j = 0;
+// main loop - wait for flag set in interrupt routine
+void loop (void)
+{
+  if (it_flag == 1)
+    {
+      j++;
+      // Serial.println(pos);
+      // buf[pos] = 0;  
+      // Serial.print ("Buffer value: ");
+      Serial.print(RxBuf);
+      Serial.println();
+      pos = 0;
+      it_flag = 0; // reset flag
+    }  // end of flag set
+}  // end of loop
+    
+// SPI interrupt routine
+ISR (SPI_STC_vect)
+{
+  byte c = SPDR;  // Rx
+  SPDR = (uint8_t)TxBuf[pos]; // Tx
+
+  RxBuf[pos] = c; // Buckets in to RxBuffer
+
+  pos++;          // increments array position
+
+  if (pos >= BUFFER_LENGTH) // last array position
+  {
+    it_flag = 1; // set interrupt flag
+    pos = 0;        // reset buffer position
+  }
+}
+
+void initSlaveSPI()
+{
+  pinMode(MISO, OUTPUT); // Slave so MISO is output
 
   // turn on SPI in slave mode
   SPCR |= _BV(SPE);
   
   // get ready for an interrupt 
   pos = 0;   // buffer empty
-  process_it = 0;
+  it_flag = 0;
 
   // now turn on interrupts
   SPI.attachInterrupt();
-
-}  // end of setup
-
-
-// SPI interrupt routine
-ISR (SPI_STC_vect)
-{
-  byte c = SPDR;  // grab byte from SPI Data Register
-  
-  // add to buffer if room
-  if (pos < sizeof(buf))
+  uint8_t empty = 0;
+  for (int i = 0; i<4; i++) // read out anything from Rx fifo in to clear it
   {
-    buf[pos] = c;
-    pos++;
-    // Serial.println(pos);
-    // example: newline means time to process buffer
-    if (c == '\n')
-    {
-      // Serial.println(pos);
-      // Serial.println("Entered SPI ISR");
-      process_it = 1;
-      
-    }
-  }  // end of room available
-  // for(int i=0;i<sizeof(message) ; i++)
-  // {
-  //   SPDR = message[i];
-  // }
-}  // end of interrupt routine SPI_STC_vect
-
-// main loop - wait for flag set in interrupt routine
-void loop (void)
-{
-  if (process_it == 1)
-    {
-    buf[pos] = 0;  
-    // Serial.print ("Buffer value: ");
-    Serial.print(buf);
-    pos = 0;
-    process_it = 0;
-      for(int i=0;i<sizeof(message) ; i++)
-      {
-        SPI.transfer(message[i]);
-      }
-    }  // end of flag set
-    
-}  // end of loop
+    empty = SPDR;
+  }
+}

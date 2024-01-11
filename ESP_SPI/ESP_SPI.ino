@@ -17,46 +17,58 @@
 
 #include <SPI.h>
 
-const int SS_PIN = 15; // GPIO15 for Slave Select
+#define BUFFER_LENGTH 12
+
+const int SS_PIN = 15;  // GPIO15 for Slave Select
 
 char receivedbyte = 0;
-char message[100] = "Hello Slave!";
+char rxBuff[BUFFER_LENGTH] = { 0 };
 
+unsigned long time_now = 0;
+uint16_t period = 1000;
 
 void setup() {
   // Initialize Serial for debugging
   Serial.begin(115200);
 
   // Initialize SPI
-  pinMode(SS_PIN, OUTPUT); // SS must be output for Master mode to work
-  SPI.begin(); // Initialize SPI interface
+  pinMode(SS_PIN, OUTPUT);  // SS must be output for Master mode to work
+  SPI.begin();              // Initialize SPI interface
 
   // Configure SPI
-  SPI.setFrequency(1000000); // Set clock to 1 MHz or as per your requirement
-  SPI.setDataMode(SPI_MODE0); // Set SPI mode to MODE0
-  SPI.setBitOrder(MSBFIRST); // Most systems use MSB first
+  SPI.setFrequency(50000);     // 50kHz as slow as possible outside dog audible range :')
+  SPI.setDataMode(SPI_MODE0);  // Set SPI mode to MODE0
+  SPI.setBitOrder(MSBFIRST);   // Most systems use MSB first
+  time_now = millis();
 }
 
-void loop() {
-  // Example of sending and receiving a byte
-  delay(1000);
-  Serial.print ("Received byte: ");
-  transmitSPI(message,sizeof(message));
+void loop() 
+{
+
+  if (millis() > time_now + period) // 1 second
+  {
+    char message[100] = "Hello Slave!";
+    transmitSPI(&message[0], BUFFER_LENGTH);
+    time_now = millis();
+    for (int i = 0; i < BUFFER_LENGTH; i++) {
+      Serial.print(rxBuff[i]);
+    }
+    Serial.println();
+  }
+
   // Wait a bit
 }
 
 
-void transmitSPI(char * data, uint16_t length)
+void transmitSPI(char* data, uint16_t length) 
 {
-  digitalWrite(SS_PIN, LOW); // Select the slave
-  for (int i = 0; i<length; i++)
+  for (int i = 0; i < length; i++) 
   {
-    receivedbyte = SPI.transfer(data[i]);        // Send a byte
-    Serial.print(receivedbyte);
+    digitalWrite(SS_PIN, LOW);          // Select the slave
+    rxBuff[i] = SPI.transfer(data[i]);  // Send a byte
+    // rxBuff[i] = receivedbyte;
+    // Serial.print(receivedbyte);
+    digitalWrite(SS_PIN, HIGH);  // Deselect the slave
   }
-  receivedbyte = SPI.transfer((char)'\n');        // Send a byte
-  Serial.print(receivedbyte);
   Serial.println("");
-  digitalWrite(SS_PIN, HIGH); // Deselect the slave
 }
-
